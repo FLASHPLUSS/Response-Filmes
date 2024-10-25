@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 import requests
-import time
 from cachetools import TTLCache
 
 app = FastAPI()
@@ -33,3 +32,19 @@ async def obter_filmes():
         raise HTTPException(status_code=500, detail="Erro ao processar o conteúdo JSON.")
 
     return filmes_data
+
+@app.get("/filmes/{titulo}")
+async def obter_filme_por_titulo(titulo: str):
+    # Verifica o cache
+    if "filmes_data" not in cache:
+        await obter_filmes()  # Carrega os dados no cache se ainda não estiverem
+
+    filmes_data = cache["filmes_data"]
+
+    # Busca o filme pelo título
+    filme = next((item for item in filmes_data if item.get("Titulo", "").lower() == titulo.lower()), None)
+
+    if filme is None:
+        raise HTTPException(status_code=404, detail="Filme não encontrado")
+
+    return filme
